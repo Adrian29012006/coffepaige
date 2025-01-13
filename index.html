@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кафе у Арама</title>
+    <style>
+        /* Оформление страницы */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+            color: #5d4037;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px;
+            background-color: #8d6e63;
+            color: white;
+        }
+
+        h3 {
+            color: #6d4c41;
+        }
+
+        form {
+            margin-bottom: 20px;
+            background-color: #eceff1;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        input, select, button {
+            padding: 10px;
+            margin-bottom: 10px;
+            width: 100%;
+            max-width: 300px;
+            border-radius: 5px;
+            border: 1px solid #bbb;
+        }
+
+        button {
+            background-color: #8d6e63;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #6d4c41;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+            background-color: white;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f5f5f5;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                margin: 10px;
+            }
+
+            input, select, button {
+                max-width: 100%;
+            }
+
+            table {
+                font-size: 14px;
+            }
+
+            th, td {
+                padding: 6px;
+            }
+
+            ul {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Кафе у Арама</h1>
+    </header>
+
+    <h3>Настройки склада:</h3>
+    <form id="stockForm">
+        <label for="milkStock">Молоко (мл):</label>
+        <input type="number" id="milkStock" name="milkStock" required min="0" step="1">
+
+        <label for="coffeeStock">Кофе (г):</label>
+        <input type="number" id="coffeeStock" name="coffeeStock" required min="0" step="1">
+
+        <label for="waterStock">Вода (мл):</label>
+        <input type="number" id="waterStock" name="waterStock" required min="0" step="1">
+
+        <label for="cupsStock">Стаканы (шт):</label>
+        <input type="number" id="cupsStock" name="cupsStock" required min="0" step="1">
+
+        <button type="button" onclick="initializeStock()">Сохранить настройки</button>
+        <button type="button" onclick="resetStockForm()">Сбросить данные</button>
+        <button type="button" onclick="resetSales()">Сбросить продажи</button>
+    </form>
+
+    <form id="coffeeForm">
+        <h3>Продажа кофе:</h3>
+        <label for="coffeeType">Выберите кофе:</label>
+        <select id="coffeeType" name="coffeeType" required>
+            <option value="Лате L">Лате L</option>
+            <option value="Лате XL">Лате XL</option>
+            <option value="Капучино L">Капучино L</option>
+            <option value="Капучино XL">Капучино XL</option>
+            <option value="Эспрессо L">Эспрессо L</option>
+            <option value="Эспрессо XL">Эспрессо XL</option>
+            <option value="Американо L">Американо L</option>
+            <option value="Американо XL">Американо XL</option>
+        </select>
+
+        <label for="priceUah">Цена (грн):</label>
+        <input type="number" id="priceUah" name="priceUah" required min="1" step="0.01">
+
+        <button type="button" onclick="addSale()">Добавить продажу</button>
+    </form>
+
+    <h2>Продажи:</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Название</th>
+                <th>Цена (грн)</th>
+                <th>Ингредиенты</th>
+                <th>Размер стакана (мл)</th>
+            </tr>
+        </thead>
+        <tbody id="salesTableBody"></tbody>
+    </table>
+
+    <h3>Общая прибыль:</h3>
+    <p>Гривны: <span id="totalUah">0</span></p>
+
+    <h3>Остаток на складе:</h3>
+    <p>Молоко: <span id="milkLeft">0</span> мл</p>
+    <p>Кофе: <span id="coffeeLeft">0</span> г</p>
+    <p>Вода: <span id="waterLeft">0</span> мл</p>
+
+    <h3>Использованные стаканы:</h3>
+    <p>Число стаканов: <span id="usedCupsCount">0</span></p>
+    <ul id="usedCups"></ul>
+
+    <script>
+        const ingredients = {
+            'Лате L': { milk: 150, coffee: 7, water: 35, cupSize: 300 },
+            'Лате XL': { milk: 200, coffee: 9, water: 50, cupSize: 400 },
+            'Капучино L': { milk: 150, coffee: 7, water: 75, cupSize: 350 },
+            'Капучино XL': { milk: 200, coffee: 9, water: 100, cupSize: 450 },
+            'Эспрессо L': { milk: 0, coffee: 7, water: 35, cupSize: 110 },
+            'Эспрессо XL': { milk: 0, coffee: 9, water: 50, cupSize: 175 },
+            'Американо L': { milk: 0, coffee: 7, water: 40, cupSize: 175 },
+            'Американо XL': { milk: 0, coffee: 9, water: 60, cupSize: 250 }
+        };
+
+        let stock = { milk: 0, coffee: 0, water: 0, cups: 0 };
+        let totalUah = 0;
+        let usedCupsCount = 0; // Число использованных стаканов
+
+        function initializeStock() {
+            stock.milk = parseFloat(document.getElementById('milkStock').value) || 0;
+            stock.coffee = parseFloat(document.getElementById('coffeeStock').value) || 0;
+            stock.water = parseFloat(document.getElementById('waterStock').value) || 0;
+            stock.cups = parseInt(document.getElementById('cupsStock').value) || 0;
+            updateStockDisplay();
+            alert('Настройки сохранены!');
+        }
+
+        function resetStockForm() {
+            document.getElementById('milkStock').value = '';
+            document.getElementById('coffeeStock').value = '';
+            document.getElementById('waterStock').value = '';
+            document.getElementById('cupsStock').value = '';
+            stock = { milk: 0, coffee: 0, water: 0, cups: 0 };
+            updateStockDisplay();
+            alert('Данные сброшены!');
+        }
+
+        function resetSales() {
+            document.getElementById('salesTableBody').innerHTML = '';
+            totalUah = 0;
+            usedCupsCount = 0; // Сбросить счетчик стаканов
+            document.getElementById('totalUah').innerText = totalUah.toFixed(2);
+            document.getElementById('usedCups').innerHTML = '';
+            document.getElementById('usedCupsCount').innerText = usedCupsCount;
+            alert('Продажи сброшены!');
+        }
+
+        function updateStockDisplay() {
+            document.getElementById('milkLeft').innerText = stock.milk;
+            document.getElementById('coffeeLeft').innerText = stock.coffee;
+            document.getElementById('waterLeft').innerText = stock.water;
+        }
+
+        function addSale() {
+            const coffeeType = document.getElementById('coffeeType').value;
+            const priceUah = parseFloat(document.getElementById('priceUah').value);
+
+            if (!canPrepare(coffeeType)) {
+                alert('Недостаточно ингредиентов или стаканов!');
+                return;
+            }
+
+            useIngredients(coffeeType);
+
+            const tableBody = document.getElementById('salesTableBody');
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td>${coffeeType}</td>
+                <td>${priceUah.toFixed(2)} грн</td>
+                <td>${formatIngredients(ingredients[coffeeType])}</td>
+                <td>${ingredients[coffeeType].cupSize} мл</td>
+            `;
+            tableBody.appendChild(newRow);
+
+            totalUah += priceUah;
+            document.getElementById('totalUah').innerText = totalUah.toFixed(2);
+
+            logCupUsage(coffeeType);
+            updateStockDisplay();
+        }
+
+        function canPrepare(coffeeType) {
+            const required = ingredients[coffeeType];
+            return stock.milk >= required.milk &&
+                   stock.coffee >= required.coffee &&
+                   stock.water >= required.water &&
+                   stock.cups > 0;
+        }
+
+        function useIngredients(coffeeType) {
+            const required = ingredients[coffeeType];
+            stock.milk -= required.milk;
+            stock.coffee -= required.coffee;
+            stock.water -= required.water;
+            stock.cups -= 1;
+        }
+
+        function logCupUsage(coffeeType) {
+            const cupSize = ingredients[coffeeType].cupSize;
+            usedCupsCount += 1; // Увеличить счетчик стаканов
+            document.getElementById('usedCupsCount').innerText = usedCupsCount;
+
+            const usedCupsList = document.getElementById('usedCups');
+            const listItem = document.createElement('li');
+            listItem.textContent = `${coffeeType} - ${cupSize} мл`;
+            usedCupsList.appendChild(listItem);
+        }
+
+        function formatIngredients(ing) {
+            return `Молоко: ${ing.milk} мл, Кофе: ${ing.coffee} г, Вода: ${ing.water} мл`;
+        }
+    </script>
+</body>
+</html>
